@@ -42,6 +42,8 @@ from seed import seed_products
 
 API_VERSION = "1.0.0"
 STATIC_DIR = FsPath(__file__).parent / "static"
+# The customer website (../web). Served at "/" so one `uvicorn` command runs everything.
+WEB_DIR = FsPath(__file__).resolve().parent.parent / "web"
 
 settings = get_settings()
 logging.basicConfig(level=settings.log_level, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
@@ -334,3 +336,11 @@ def get_order(
     if order is None:
         raise not_found
     return crud.order_to_schema(order, cfg)
+
+
+# --------------------------------------------------------------------------
+# Customer website
+# --------------------------------------------------------------------------
+# Mounted last so every /api, /docs and /static route above takes precedence.
+if WEB_DIR.is_dir() and settings.serve_website:
+    app.mount("/", StaticFiles(directory=WEB_DIR, html=True), name="website")

@@ -13,6 +13,7 @@ cp .env.example .env                 # then edit business details
 uvicorn main:app --reload --host 0.0.0.0 --port 8000
 ```
 
+- Customer website: http://localhost:8000/ (served from `../web`; set `SERVE_WEBSITE=false` to disable)
 - Swagger UI: http://localhost:8000/docs
 - OpenAPI JSON: http://localhost:8000/openapi.json
 - `--host 0.0.0.0` lets phones and emulators on your network reach the server.
@@ -120,7 +121,7 @@ For product photos, put files in `static/products/` and set `image_url` to `/sta
 pytest -q
 ```
 
-The 48 tests cover health and readiness, bakery info, product listing, filters, sorting and pagination, invalid query params, product 404s, order validation (empty orders, bad quantities, bad phone, name and email values, long notes, past or too-far pickups, lead time, pickup window), unknown and unavailable products, server-side pricing and rejection of client totals, merged lines, historical price snapshots, idempotent replays, lookup access control, status changes, persistence across a new engine (simulated restart), inventory rollback and overselling, body-size limit, rate limiter, and that 500 errors don't leak details. Tests use a temporary SQLite database.
+The 49 tests cover the website being served at `/`, health and readiness, bakery info, product listing, filters, sorting and pagination, invalid query params, product 404s, order validation (empty orders, bad quantities, bad phone, name and email values, long notes, past or too-far pickups, lead time, pickup window), unknown and unavailable products, server-side pricing and rejection of client totals, merged lines, historical price snapshots, idempotent replays, lookup access control, status changes, persistence across a new engine (simulated restart), inventory rollback and overselling, body-size limit, rate limiter, and that 500 errors don't leak details. Tests use a temporary SQLite database.
 
 ## Production checklist
 

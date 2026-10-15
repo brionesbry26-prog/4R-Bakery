@@ -21,6 +21,8 @@ class Settings(BaseSettings):
     cors_origins: str = "*"
     log_level: str = "INFO"
     seed_sample_products: bool = True
+    # Serve the customer website (../web) at "/". Disable when hosting it elsewhere.
+    serve_website: bool = True
 
     # --- Business information (leave blank until verified) ----------------
     bakery_name: str = "4R Bakery"

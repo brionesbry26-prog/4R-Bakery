@@ -16,3 +16,4 @@ web-build/
 .DS_Store
 mobile/.env
 mobile/.env.local
+web/e2e/screenshots/

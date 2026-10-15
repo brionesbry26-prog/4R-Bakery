@@ -385,3 +385,12 @@ def test_internal_errors_do_not_leak_details(client, monkeypatch):
     c = __import__("fastapi.testclient", fromlist=["TestClient"]).TestClient(main.app, raise_server_exceptions=False)
     r = c.get("/api/bakery/products")
     assert r.status_code == 500 and "secret" not in r.text
+
+
+def test_website_served_at_root(client):
+    r = client.get("/")
+    assert r.status_code == 200
+    assert "4R Bakery" in r.text and 'src="js/app.js"' in r.text
+    assert client.get("/js/app.js").status_code == 200
+    # API routes still win over the static mount
+    assert client.get("/api/health").json()["status"] == "ok"

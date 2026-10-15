@@ -1,134 +1,118 @@
-# 4R Bakery — Mobile App + API
+# 4R Bakery: Website + API
 
-A cross-platform customer app for **4R Bakery** (Brgy. Bachawan, San Agustin, Romblon, Philippines), backed by a Python REST API. Customers can browse the menu, fill a bag, and submit **pre-order requests**. Each request stays *pending* until the bakery confirms it. Customers can then track the status.
+The customer website for **4R Bakery** (Brgy. Bachawan, San Agustin, Romblon, Philippines), backed by a Python REST API. Customers browse the menu, fill a bag and submit **pre-order requests**. Each request stays *pending* until the bakery confirms it, and customers can track its status.
 
-| Home | Menu | Pre-order | Confirmation | Orders |
-|---|---|---|---|---|
-| ![Home](docs/screenshots/01-home.png) | ![Menu](docs/screenshots/04-menu.png) | ![Checkout](docs/screenshots/10-checkout-errors.png) | ![Confirmation](docs/screenshots/11-confirmation.png) | ![Orders](docs/screenshots/12-orders.png) |
+| Home | Menu | Pre-order |
+|---|---|---|
+| ![Home](docs/screenshots/website/d-home.png) | ![Menu](docs/screenshots/website/d-menu.png) | ![Checkout](docs/screenshots/website/d-checkout-errors.png) |
 
-*(Screenshots come from the web build, driven by Playwright against the real API. Native renders use the same components.)*
+| Bag | Confirmation | On a phone |
+|---|---|---|
+| ![Bag drawer](docs/screenshots/website/d-bag.png) | ![Confirmation](docs/screenshots/website/d-confirmation.png) | ![Mobile menu](docs/screenshots/website/m-menu.png) |
 
-## Project structure
+*(Screenshots were taken by the Playwright end-to-end test against the real API.)*
 
-```text
-4R-Bakery/
-├── backend/                 FastAPI + SQLAlchemy + SQLite (PostgreSQL-ready)
-│   ├── main.py              App, routes, middleware, error handling
-│   ├── config.py            Settings from environment / .env
-│   ├── database.py          Engine + session
-│   ├── models.py            Product, Order, OrderItem
-│   ├── schemas.py           Pydantic request/response models, validation
-│   ├── crud.py              Business rules: pricing, pickup rules, inventory, lookup
-│   ├── seed.py              Sample catalog (idempotent)
-│   ├── manage.py            Staff CLI: list orders, change status, availability
-│   ├── static/products/     Optional product photos
-│   ├── tests/test_api.py    48 pytest tests
-│   ├── requirements.txt / requirements-dev.txt / .env.example / README.md
-└── mobile/                  Expo SDK 57 (React Native 0.86, React 19), JavaScript
-    ├── App.js               Fonts, providers, navigator
-    ├── app.json             Expo config (name, icons, splash, plugins)
-    ├── src/
-    │   ├── navigation/AppNavigator.js       Bottom tabs + stack
-    │   ├── screens/  Home, Products, ProductDetails, Cart, Checkout,
-    │   │             OrderConfirmation, Orders, StoreInfo
-    │   ├── components/  Bakery3DCanvas, ProductCard, CategoryChip, PrimaryButton,
-    │   │                LoadingState, ErrorState, EmptyState, PickupPicker, …
-    │   ├── context/  CartContext (+ cartReducer), CatalogContext, OrdersContext
-    │   ├── services/ api.js (HTTP client), storage.js (AsyncStorage)
-    │   ├── constants/ colors.js, theme.js, config.js (API URL resolution)
-    │   ├── hooks/    useReducedMotion, useDebouncedValue
-    │   └── utils/    money, validation, catalog filters, dates
-    ├── __tests__/   Jest: logic, API client, full-app render test
-    └── e2e/         Playwright scripts for the web build
+## Run it (one command)
+
+The FastAPI backend also serves the website, so there's **no Node.js or build step**.
+
+**Windows (PowerShell):**
+```powershell
+cd backend
+py -V:3.12 -m venv .venv            # or: py -3.12 -m venv .venv
+.\.venv\Scripts\Activate.ps1
+python -m pip install -r requirements-dev.txt
+if (!(Test-Path .env)) { Copy-Item .env.example .env }
+uvicorn main:app --reload --host 0.0.0.0 --port 8000
 ```
 
-## Prerequisites
-
-- **Python 3.11+** (tested with 3.13)
-- **Node.js 20+** (tested with 22) and npm
-- To run on devices: **Expo Go** (SDK 57) on Android or iOS, Android Studio for the emulator, or Xcode for the iOS simulator (macOS only)
-
-## 1. Run the backend
-
+**macOS / Linux:**
 ```bash
 cd backend
-python3 -m venv .venv && source .venv/bin/activate   # Windows: .venv\Scripts\activate
+python3 -m venv .venv && source .venv/bin/activate
 pip install -r requirements-dev.txt
 cp .env.example .env
 uvicorn main:app --reload --host 0.0.0.0 --port 8000
 ```
 
-Open http://localhost:8000/docs for the API documentation. The database (`backend/bakery.db`) and the sample catalog are created on first start. See [backend/README.md](backend/README.md) for configuration, endpoints and security notes.
+Then open:
+- **Website:** http://localhost:8000/
+- **API docs:** http://localhost:8000/docs
 
-## 2. Run the mobile app
+To see the site from a phone on the same Wi-Fi, use `http://<your-computer-IP>:8000/`. Find your IP with `ipconfig` (Windows) or `ifconfig` (macOS/Linux), and allow port 8000 through the firewall.
 
-```bash
-cd mobile
-npm install
-npx expo start
+> **Windows tip:** If `pip` breaks with `ImportError ... BuildDependencyInstallError`, the virtual environment is corrupted. Run `deactivate`, then `Remove-Item -Recurse -Force .venv`, and repeat the steps. Python 3.12 is the tested version.
+
+## Project structure
+
+```text
+4R-Bakery/
+├── web/                     Customer website (HTML + CSS + JS modules, no build step)
+│   ├── index.html
+│   ├── css/styles.css       Design tokens + all components (responsive)
+│   ├── js/
+│   │   ├── app.js           Shell (header, bag drawer, footer), routing, global actions
+│   │   ├── api.js           API client (timeouts, typed errors)
+│   │   ├── store.js         Catalog, bag (localStorage), remembered orders
+│   │   ├── illustrations.js Inline SVG bakery artwork (used when no photo exists)
+│   │   ├── icons.js, ui.js, format.js, validation.js, router.js, config.js
+│   │   └── views/           home, menu, product, checkout, orders (confirmation + track), visit
+│   └── e2e/website.e2e.js   Playwright end-to-end test
+├── backend/                 FastAPI + SQLAlchemy + SQLite (PostgreSQL-ready); serves web/ at "/"
+│   ├── main.py, config.py, database.py, models.py, schemas.py, crud.py, seed.py, manage.py
+│   ├── tests/test_api.py    49 pytest tests
+│   └── README.md            API reference, configuration, security notes
+└── mobile/                  Optional Expo (React Native) app using the same API
 ```
 
-Then press `a` (Android emulator), press `i` (iOS simulator), or scan the QR code with Expo Go on a phone.
+**Hosting the website elsewhere** (for example Netlify, or any static host): upload `web/`, set `SERVE_WEBSITE=false` in the backend `.env`, add the site's origin to `CORS_ORIGINS`, and point the site at your API by adding this before `app.js` in `index.html`:
+`<script>window.BAKERY_CONFIG = { apiBaseUrl: "https://api.your-domain/api" }</script>`.
 
-### Pointing the app at the API
+## Website features
 
-`localhost` on a phone means *the phone*, not your computer. `src/constants/config.js` resolves the base URL in this order:
+**Home.** A split hero with a layered illustration that responds to scrolling (parallax) and pointer movement, gently floating unless the visitor has turned on "Reduce motion". Below that: a scrolling product strip, featured bestsellers loaded from the API, "how pre-ordering works", the bakery's story, and a call-to-action for celebration cakes.
 
-1. **`EXPO_PUBLIC_API_BASE_URL`** in `mobile/.env` (copy `mobile/.env.example`). Recommended.
-2. `expo.extra.apiBaseUrl` in `app.json`.
-3. **Development auto-detect:** the IP of the machine running `expo start`, port 8000. This usually works with no configuration on emulators and phones on the same Wi-Fi.
+**Menu.** A sidebar with search, category filters (with counts) and sorting by featured, name or price. Filtering happens in the browser on the catalog loaded from the API. Unavailable items are marked and can't be added. Loading skeletons, an empty "no matches" state and an error state with retry are all handled.
 
-| Where the app runs | Base URL |
-|---|---|
-| Android emulator | `http://10.0.2.2:8000/api` |
-| iOS simulator | `http://localhost:8000/api` |
-| Physical phone on the same Wi-Fi | `http://<your-computer-LAN-IP>:8000/api` (find it with `ipconfig` or `ifconfig`; allow port 8000 through your firewall) |
-| Production | `https://<your-api-domain>/api`. HTTPS is required: release builds block plain HTTP on Android 9+ and iOS |
+**Product page.** Large artwork, price per unit, availability, a quantity stepper with a live line total, "already in your bag", and related items. Price and availability are re-fetched from the API every time the page opens.
 
-Restart `npx expo start -c` after changing `.env`. If the API can't be reached, the app shows a retry screen, and in development it also shows which URL it tried. The app **never** substitutes built-in product data.
+**Bag.** A slide-in drawer reachable from every page (Esc closes it). It has +/– controls and remove, an estimated subtotal, and is saved in the browser. Items that became unavailable block checkout.
 
-## Features
+**Pre-order checkout.** Two numbered form sections with a sticky order summary, inline validation, PH mobile number checks, date/time inputs limited to the bakery's rules, and a notes counter. On submit, the site:
+1. Re-checks the menu with the server and stops if any price or availability changed.
+2. Sends the order with an `Idempotency-Key`. The button locks while sending, so double clicks or retries never create a duplicate.
+3. Clears the bag **only after** the server confirms the order.
 
-**Home.** Shows branding, location and a bag badge. The hero has a three-layer **parallax** effect and the interactive **Bakery3DCanvas**. Below that: featured carousel, popular items, about, visit us, and a footer with working links.
+Server field errors are mapped back onto the form fields. If the connection drops, the site says "Your request was not sent" and keeps the bag.
 
-**Menu.** Products come from the API with category chips, debounced search, and sorting (featured, name, price). Prices are in ₱. Unavailable items are marked and their add button is disabled. Pull to refresh; loading, empty and error states are handled.
+**Confirmation and tracking.** Shows the real server reference, `Pending` status, the server-computed total and a copy button. The Track page refreshes orders placed in this browser and can look up any order by reference + mobile number.
 
-**Product details.** Large image (or an illustrated fallback), description, category, availability, and a quantity selector. Price and availability are refreshed from the API each time the screen opens.
+**Visit us.** Address with directions and copy, opening hours, phone, email and social links, plus an embedded map. Details show "not yet published" until the bakery sets them in `backend/.env`.
 
-**Bag.** Shared state through Context and a reducer, persisted with AsyncStorage. Supports +/–, remove, clear (with confirmation), subtotals and an estimated total. There is no delivery fee because delivery isn't offered. Items that became unavailable block checkout.
+**Responsive.** Desktop-first layout (1200px container). Below 900px the menu sidebar becomes chips and navigation moves into a menu button. Single-column layout below 600px.
 
-**Pre-order.** Name, PH mobile number, optional email, pickup date and time (native pickers), and notes, all with inline validation. An order summary is shown, and the pending-confirmation status is stated clearly. On submit, the app:
-1. Re-fetches the catalog and stops if any price or availability changed.
-2. Asks for confirmation.
-3. POSTs with an `Idempotency-Key`. Double taps are blocked and retries never duplicate an order.
-4. Clears the bag **only after** the server returns the order.
-
-Server field errors are mapped back onto the form fields.
-
-**Confirmation.** Shows the real server reference, `Pending` status, server-computed totals and pickup details, with a copy-reference button.
-
-**Orders.** Lists orders placed on this device, refreshed from the API on focus and on pull. You can also track any order by reference + contact number.
-
-**Store.** Address with Maps and copy actions, hours, tap-to-call, email and social links. Contact details show "not yet configured" until the bakery sets them in `backend/.env`.
+**Accessibility.** Semantic landmarks, a skip link, visible focus rings, labelled icon buttons, live regions for errors and toasts, an `inert` drawer when closed, and 44px+ targets.
 
 ### Design system
 
-The palette lives in `src/constants/colors.js`: Primary `#8E1EA2`, Secondary `#C654C3`, Accent `#ED96D7`, Soft Frosting `#FFC0DE`, Surface `#FFFFFF`, Deep Text `#2D0A34`. A few derived tints and status colors are also defined there. Spacing, radii and the type scale are in `theme.js`.
+All colors are CSS variables in `web/css/styles.css`. The brand palette is:
 
-Montserrat is used throughout (Bold for titles, SemiBold for names and prices, Medium for buttons and labels, Regular for body text). If the fonts fail or take longer than 4 seconds, the app falls back to the system font with matching weights.
+| Role | Color |
+|---|---|
+| Primary | `#8E1EA2` |
+| Secondary | `#C654C3` |
+| Accent | `#ED96D7` |
+| Soft Frosting | `#FFC0DE` |
+| Surface | `#FFFFFF` |
+| Deep Text | `#2D0A34` |
 
-Touch targets are at least 44–48 dp. Icons and controls have accessibility labels.
+Lighter tints of these colors are used for backgrounds and status colors. Montserrat (Google Fonts) is used throughout, with system-font fallbacks.
 
-### About the "3D" bakery visual (a substitution)
+Product artwork is custom flat SVG (pandesal, Spanish bread, cheese bread, loaf, ensaymada, cinnamon rolls, birthday cake, occasion cake). It uses the brand colors plus a small set of bread tones reserved for illustrations. To use real photos, put them in `backend/static/products/` and set each product's `image_url`; photos replace the artwork automatically.
 
-`Bakery3DCanvas` draws **layered 2.5D artwork**: croissant, bread, cupcake, wheat and sprinkles, each placed at a different depth. Perspective, rotation, floating and parallax transforms run on the native driver, and the scene tilts with the device accelerometer when one is available. React Three Fiber / expo-gl was **intentionally not used**. It would add several MB and a GL context, and tie the app to SDK-specific native code, all for a decorative element. That conflicts with the requirement not to compromise startup or compatibility.
+### Optional mobile app (`mobile/`)
 
-The component:
-- honors OS **Reduce Motion** by rendering a static scene,
-- is `pointerEvents="none"`,
-- mounts only when the JS thread is idle,
-- pauses when the Home tab isn't focused,
-- falls back to a flat illustration through an error boundary.
+The earlier Expo/React Native app still works against the same API (`cd mobile && npm install && npx expo start`). Its screenshots are in `docs/screenshots/mobile-app/`. It isn't needed for the website.
 
 ## Testing
 
@@ -136,52 +120,52 @@ The component:
 
 | Suite | Command | Result |
 |---|---|---|
-| Backend unit/integration | `cd backend && pytest -q` | **48 passed** |
-| Mobile Jest (logic, API client, full-app render through all 5 tabs) | `cd mobile && npm test` | **19 passed** |
-| Android, iOS and web bundles compile | `npx expo export --platform android` (and `ios`, `web`) | **All three bundled** (Hermes bytecode for native) |
-| `npx expo-doctor` | | **19/21 passed.** The 2 failures need the Expo web API, which this sandbox's network blocks |
-| Browser E2E: happy path (`mobile/e2e/happy-path.js`) | Real backend + web build + Playwright | **Passed.** Launch → info and catalog loaded from the API → search "pandesal" → open product → qty 5 → add → bag qty 6 → checkout validation errors shown → valid submit → server reference and `Pending` shown, server total ₱18.00 → Orders and Store screens |
-| Browser E2E: failure paths (`mobile/e2e/failure-paths.js`) | | **Passed.** Unavailable item can't be added; sort and category filter work; submit while offline shows "Your request was not sent" and **keeps the bag**; retry succeeds with server total ₱650.00; with the API down, the menu shows a retry screen, and retry recovers |
-| Persistence across backend restart | Stopped and restarted uvicorn, then fetched both orders | **Orders intact.** Wrong phone → 404. `manage.py set-status` change was visible through the API. Product count unchanged (no duplicate seeding) |
-| Logging | Checked server logs for customer names and phone numbers | **None logged** |
+| Backend unit/integration | `cd backend && pytest -q` | **49 passed** (includes the website being served at `/` while `/api` routes still take priority) |
+| Website end-to-end, desktop 1440px | `NODE_PATH=$(npm root -g) node web/e2e/website.e2e.js` | **17/17 checks passed** |
+| Website end-to-end, phone 390px | `VIEWPORT=mobile … node web/e2e/website.e2e.js` | **17/17 checks passed** |
+| Optional mobile app (Jest, bundles) | `cd mobile && npm test` | 19 passed (from the earlier mobile build) |
 
-To rerun the browser E2E:
+The end-to-end run uses the real backend and covers:
+- all 8 products loading from the API,
+- search, category filter and price sort,
+- an unavailable item being blocked,
+- the product page line total (5 × ₱3.00 = ₱15.00),
+- bag drawer quantity changes,
+- validation errors on an empty form,
+- **a simulated network failure keeping the bag**,
+- a successful submit showing a real `4R-XXXX-XXXX` reference, `Pending` status and the server total ₱18.00,
+- the bag clearing only after success,
+- the order showing on Track,
+- the API-down retry state and recovery,
+- no JavaScript errors.
 
-```bash
-# terminal 1
-cd backend && uvicorn main:app --port 8000
-# terminal 2
-cd mobile && EXPO_PUBLIC_API_BASE_URL=http://localhost:8000/api npx expo export --platform web --output-dir /tmp/web \
-  && python3 -m http.server 8081 -d /tmp/web
-# terminal 3 (needs Playwright: npm i -g playwright && npx playwright install chromium)
-cd mobile && NODE_PATH=$(npm root -g) node e2e/happy-path.js && NODE_PATH=$(npm root -g) node e2e/failure-paths.js
-```
+To run it: start the backend, install Playwright once (`npm i -g playwright && npx playwright install chromium`), then run the command above. Screenshots go to `web/e2e/screenshots/`.
 
-### Not yet verified: please check on real hardware
+### Not yet verified
 
-- Running the app on an **Android emulator or device and an iOS simulator or device**. Native bundles compile, but no native runtime was available here. In particular, check the native date/time pickers, accelerometer tilt, Android back-button behavior, tap-to-call and Maps links.
-- Small-screen layout on a real 320 dp-wide phone (the web check used 360 and 390 px widths).
-- Screen-reader walkthroughs with TalkBack and VoiceOver.
+- Real-device browsers: iPhone Safari, Android Chrome, and older Windows browsers.
+- Screen-reader walkthroughs (NVDA, VoiceOver).
+- The embedded Google map: the test sandbox blocks Google, so it showed as an empty frame there. It loads normally on a regular internet connection.
 
 ## Troubleshooting
 
 | Symptom | Fix |
 |---|---|
-| "Can't reach the bakery" on a phone | Use your computer's **LAN IP**, start uvicorn with `--host 0.0.0.0`, make sure both devices share the same Wi-Fi, and allow port 8000 through the firewall |
-| Works in the emulator, not on the phone | `10.0.2.2` only works inside the Android emulator; set `EXPO_PUBLIC_API_BASE_URL` |
-| `.env` change ignored | Restart with `npx expo start -c` |
-| Release build can't reach an `http://` API | Expected: release builds require HTTPS |
+| `Python was not found` (Windows) | Install Python 3.12 (`winget install -e --id Python.Python.3.12`), then open a new PowerShell window |
+| `ImportError … BuildDependencyInstallError` | The venv is corrupted. Run `deactivate`, then `Remove-Item -Recurse -Force .venv`, and recreate it with `py -V:3.12 -m venv .venv` |
+| "Running scripts is disabled" | Run `Set-ExecutionPolicy -Scope CurrentUser RemoteSigned` once |
+| Site says "We can't reach the bakery" | Make sure `uvicorn` is running and you opened the site from the same server (http://localhost:8000/) |
+| Phone can't open the site | Use your PC's LAN IP, start uvicorn with `--host 0.0.0.0`, use the same Wi-Fi, and allow port 8000 in the firewall |
 | "Pickup must be in the future" near midnight | Pickup times use bakery time (Asia/Manila) |
-| Duplicate products after editing seed data | Seeding matches by `slug`. Change the slug only for genuinely new products |
 | `429 Too many requests` | Raise `ORDER_RATE_LIMIT_PER_MINUTE` in development, or set it to `0` |
 
 ## Before deployment: what still needs configuring
 
 1. **Real business details** in `backend/.env`: phone, hours, email, social links and an exact map URL. These were left blank on purpose rather than invented.
-2. **The real menu and prices.** The seeded products and prices are samples. Add product photos to `backend/static/products/`.
+2. **The real menu and prices.** The seeded products and prices are samples. Product photos are optional.
 3. **Pickup rules:** lead time, advance days, and optionally the pickup window.
-4. **Hosting:** HTTPS API, PostgreSQL, proxy-level rate limiting, `ENVIRONMENT=production`. Set the production `EXPO_PUBLIC_API_BASE_URL` and build with EAS (`npx eas-cli build`).
-5. **Store assets:** the app icon and splash were generated from the brand palette and a croissant glyph. Replace them with the bakery's real logo if it has one.
+4. **Hosting:** HTTPS, PostgreSQL, proxy-level rate limiting, and `ENVIRONMENT=production` with an explicit `CORS_ORIGINS`.
+5. **Logo:** the "4R" mark is a placeholder. Swap in the bakery's real logo if it has one.
 
 ## Out of scope for this release (designed to be added later)
 
