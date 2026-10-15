@@ -2,15 +2,7 @@
 
 The customer website for **4R Bakery** (Brgy. Bachawan, San Agustin, Romblon, Philippines), backed by a Python REST API. Customers browse the menu, fill a bag and submit **pre-order requests**. Each request stays *pending* until the bakery confirms it, and customers can track its status.
 
-| Home | Menu | Pre-order |
-|---|---|---|
-| ![Home](docs/screenshots/website/d-home.png) | ![Menu](docs/screenshots/website/d-menu.png) | ![Checkout](docs/screenshots/website/d-checkout-errors.png) |
-
-| Bag | Confirmation | On a phone |
-|---|---|---|
-| ![Bag drawer](docs/screenshots/website/d-bag.png) | ![Confirmation](docs/screenshots/website/d-confirmation.png) | ![Mobile menu](docs/screenshots/website/m-menu.png) |
-
-*(Screenshots were taken by the Playwright end-to-end test against the real API.)*
+The design uses a clean warm-neutral palette and editorial food photography (see **Photos** below).
 
 ## Run it (one command)
 
@@ -95,20 +87,28 @@ Server field errors are mapped back onto the form fields. If the connection drop
 
 ### Design system
 
-All colors are CSS variables in `web/css/styles.css`. The brand palette is:
+All colors are CSS variables at the top of `web/css/styles.css`:
 
-| Role | Color |
-|---|---|
-| Primary | `#8E1EA2` |
-| Secondary | `#C654C3` |
-| Accent | `#ED96D7` |
-| Soft Frosting | `#FFC0DE` |
-| Surface | `#FFFFFF` |
-| Deep Text | `#2D0A34` |
+| Role | Color | Used for |
+|---|---|---|
+| Background | `#FAF7F2` (warm off-white) | Page background |
+| Surface | `#FFFFFF` | Cards, header, drawer |
+| Ink | `#221B15` | Text |
+| Espresso | `#2B2118` | Buttons, brand mark |
+| Caramel | `#A8552A` | Small highlights: eyebrows, links, the headline accent |
+| Sand | `#EFE4D6` / `#F3EDE5` | Quiet panels |
+| Border | `#E8E0D5` | Hairlines |
 
-Lighter tints of these colors are used for backgrounds and status colors. Montserrat (Google Fonts) is used throughout, with system-font fallbacks.
+Typography is Montserrat with system-font fallbacks.
 
-Product artwork is custom flat SVG (pandesal, Spanish bread, cheese bread, loaf, ensaymada, cinnamon rolls, birthday cake, occasion cake). It uses the brand colors plus a small set of bread tones reserved for illustrations. To use real photos, put them in `backend/static/products/` and set each product's `image_url`; photos replace the artwork automatically.
+The colors are checked for readability: body text is 15.9:1 contrast against the background, muted text 5.5:1, and the caramel links 4.9:1, all above the WCAG AA minimum.
+
+### Photos
+
+- The product and section photos are **AI-generated stand-ins** (Higgsfield, `z_image` model). They are realistic, but they are **not** photos of 4R Bakery's actual products or shop.
+- Each photo loads in this order: a local copy in `web/images/`, then the hosted copy, then a drawn illustration if both fail.
+- To save the photos locally, run `.\web\images\download-photos.ps1` on Windows or `sh web/images/download-photos.sh` on macOS/Linux.
+- To use the bakery's real photos, replace the files in `web/images/` using the same names. See `web/images/README.md`.
 
 ### Optional mobile app (`mobile/`)
 

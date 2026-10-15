@@ -16,7 +16,7 @@ export function productCard(p) {
       <h3 class="product-name"><a href="#/product/${p.id}">${esc(p.name)}</a></h3>
       <p class="product-desc">${esc(p.description)}</p>
       <div class="product-foot">
-        <div class="price">${formatPeso(p.price)}<small>per ${esc(p.unit)}</small></div>
+        <div class="price">${formatPeso(p.price)}<small>${/^starting/i.test(p.unit) ? 'starting price' : `per ${esc(p.unit)}`}</small></div>
         <button class="add-btn" data-action="add" data-id="${p.id}" ${available ? '' : 'disabled'}
           aria-label="${available ? `Add ${esc(p.name)} to bag` : `${esc(p.name)} is unavailable`}">
           ${icon(inBag ? 'check' : 'plus', { size: 22 })}

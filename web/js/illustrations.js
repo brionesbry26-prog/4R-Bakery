@@ -1,3 +1,5 @@
+import { photoTag } from './photos.js';
+
 // Flat bakery illustrations (inline SVG) used when a product has no photo.
 // Brand palette + a small set of bread tones reserved for artwork only.
 const C = {
@@ -184,11 +186,18 @@ export function productArt(product) {
 
 export const art = (name) => (ART[name] || ART.croissant)();
 
-/** Product photo if available, otherwise illustration. */
+/** Product photo if available (uploaded image_url → bundled photo → illustration). */
 export function productVisual(product) {
   const url = product?.image_url;
   if (url && (/^https?:\/\//i.test(url) || url.startsWith('/'))) {
-    return `<img src="${url.replace(/"/g, '&quot;')}" alt="${String(product.name).replace(/"/g, '&quot;')}" loading="lazy" onerror="this.replaceWith(Object.assign(document.createElement('span'),{className:'art-fallback'}))">`;
+    const alt = String(product.name).replace(/"/g, '&quot;');
+    return `<img class="photo" src="${url.replace(/"/g, '&quot;')}" alt="${alt}" loading="lazy" decoding="async" data-photo="${String(product.name).toLowerCase().replace(/"/g, '')}">`;
   }
-  return productArt(product);
+  const key = String(product?.name || '').toLowerCase();
+  return photoTag(key, { alt: product?.name }) || productArt(product);
+}
+
+/** Illustration used when a photo fails to load. */
+export function fallbackArt(key) {
+  return (ART[String(key || '').toLowerCase()] || ART.croissant)();
 }

@@ -1,6 +1,6 @@
 import { esc, formatCents, formatPeso, toCents } from './format.js';
 import { icon } from './icons.js';
-import { productVisual } from './illustrations.js';
+import { fallbackArt, productVisual } from './illustrations.js';
 import { parseHash } from './router.js';
 import { addToCart, cartTotals, loadInfo, loadProducts, productById, removeFromCart, setQuantity, state, subscribe } from './store.js';
 import { emptyState, stepper, toast } from './ui.js';
@@ -221,7 +221,23 @@ function onChange(e) {
   if (id?.startsWith('cart-')) setQuantity(Number(id.slice(5)), Math.floor(Number(e.target.value)) || 0);
 }
 
+// Photos: try the bundled file, then the remote copy, then the drawn illustration.
+function onImageError(e) {
+  const img = e.target;
+  if (!(img instanceof HTMLImageElement) || !img.classList.contains('photo')) return;
+  const remote = img.dataset.remote;
+  if (remote && img.src !== remote) {
+    img.src = remote;
+    return;
+  }
+  const span = document.createElement('span');
+  span.className = 'art-fallback';
+  span.innerHTML = fallbackArt(img.dataset.photo);
+  img.replaceWith(span);
+}
+
 function init() {
+  document.addEventListener('error', onImageError, true);
   shell();
   document.addEventListener('click', onClick);
   document.addEventListener('change', onChange);

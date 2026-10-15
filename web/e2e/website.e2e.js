@@ -24,7 +24,12 @@ const ok = (cond, msg) => {
   const tag = mobile ? 'm' : 'd';
   const shot = async (n, full = false) => {
     // Full-page captures stitch the viewport, which repeats sticky headers; pin it to the top while capturing.
-    const style = full ? await page.addStyleTag({ content: '.site-header{position:absolute!important;left:0;right:0}' }) : null;
+    if (full) {
+      // Load lazy images before a full-page capture.
+      await page.evaluate(() => document.querySelectorAll('img[loading="lazy"]').forEach((i) => (i.loading = 'eager')));
+      await page.waitForTimeout(600);
+    }
+    const style = full ? await page.addStyleTag({ content: '.site-header{position:relative!important}' }) : null;
     await page.screenshot({ path: `${out}/${tag}-${n}.png`, fullPage: full });
     if (style) await style.evaluate((el) => el.remove());
   };
