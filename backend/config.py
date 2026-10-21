@@ -7,7 +7,9 @@ default. They must be supplied by the bakery rather than invented.
 from functools import lru_cache
 from zoneinfo import ZoneInfo
 
-from pydantic import Field, field_validator
+import os
+
+from pydantic import AliasChoices, Field, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -16,7 +18,8 @@ class Settings(BaseSettings):
 
     # --- Runtime -----------------------------------------------------------
     environment: str = Field("development", description="development | production")
-    database_url: str = "sqlite:///./bakery.db"
+    # Vercel/Neon integrations expose DATABASE_URL or POSTGRES_URL; both are accepted.
+    database_url: str = Field("sqlite:///./bakery.db", validation_alias=AliasChoices("DATABASE_URL", "POSTGRES_URL"))
     # Comma-separated list of allowed CORS origins. "*" is only honoured in development.
     cors_origins: str = "*"
     log_level: str = "INFO"
@@ -56,6 +59,20 @@ class Settings(BaseSettings):
     max_request_body_bytes: int = 32_768
     order_rate_limit_per_minute: int = Field(10, ge=0, description="0 disables the limiter")
     lookup_rate_limit_per_minute: int = Field(60, ge=0, description="0 disables the limiter")
+
+    @field_validator("database_url")
+    @classmethod
+    def _normalize_db_url(cls, value: str) -> str:
+        value = value.strip()
+        # Hosted Postgres providers hand out postgres:// URLs; SQLAlchemy needs the driver name.
+        for prefix in ("postgres://", "postgresql://"):
+            if value.startswith(prefix):
+                return "postgresql+psycopg://" + value[len(prefix):]
+        # Serverless platforms (Vercel) only allow writing to /tmp, which is wiped often.
+        # Fall back there so the site still starts, but configure Postgres for real use.
+        if os.environ.get("VERCEL") and value.startswith("sqlite:///./"):
+            return "sqlite:////tmp/" + value[len("sqlite:///./"):]
+        return value
 
     @field_validator("pickup_open_time", "pickup_close_time")
     @classmethod

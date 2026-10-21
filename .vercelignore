@@ -1,0 +1,8 @@
+# Not needed for the Vercel deployment
+mobile/
+docs/
+web/e2e/
+backend/.venv/
+backend/tests/
+backend/*.db
+**/__pycache__/

@@ -7,7 +7,8 @@ import pytest
 
 # Configure an isolated database BEFORE application modules are imported.
 _TMP = Path(tempfile.mkdtemp(prefix="bakery-tests-"))
-os.environ["DATABASE_URL"] = f"sqlite:///{_TMP / 'test.db'}"
+# Set TEST_DATABASE_URL to run the suite against PostgreSQL instead of SQLite.
+os.environ["DATABASE_URL"] = os.environ.get("TEST_DATABASE_URL") or f"sqlite:///{_TMP / 'test.db'}"
 os.environ["ORDER_RATE_LIMIT_PER_MINUTE"] = "0"
 os.environ["LOOKUP_RATE_LIMIT_PER_MINUTE"] = "0"
 os.environ["SEED_SAMPLE_PRODUCTS"] = "true"

@@ -313,10 +313,10 @@ def test_status_update_visible_to_customer(client, db):
 # --- Persistence & transactions ---------------------------------------------------
 
 
-def test_order_persists_across_new_engine(client, db_path):
+def test_order_persists_across_new_engine(client):
     ref = client.post("/api/bakery/orders", json=order_payload(client)).json()["reference"]
-    # Simulate a backend restart: a brand new engine/connection pool on the same file.
-    fresh = make_engine(f"sqlite:///{db_path}")
+    # Simulate a backend restart: a brand new engine/connection pool on the same database.
+    fresh = make_engine(get_settings().database_url)
     from sqlalchemy.orm import Session
 
     with Session(fresh) as s:
@@ -394,3 +394,21 @@ def test_website_served_at_root(client):
     assert client.get("/js/app.js").status_code == 200
     # API routes still win over the static mount
     assert client.get("/api/health").json()["status"] == "ok"
+
+
+@pytest.mark.parametrize(
+    "raw, expected",
+    [
+        ("postgres://u:p@host/db", "postgresql+psycopg://u:p@host/db"),
+        ("postgresql://u:p@host/db?sslmode=require", "postgresql+psycopg://u:p@host/db?sslmode=require"),
+        ("postgresql+psycopg://u:p@host/db", "postgresql+psycopg://u:p@host/db"),
+    ],
+)
+def test_database_url_normalization(raw, expected):
+    assert Settings(database_url=raw).database_url == expected
+
+
+def test_vercel_falls_back_to_tmp_sqlite(monkeypatch):
+    monkeypatch.setenv("VERCEL", "1")
+    monkeypatch.delenv("DATABASE_URL", raising=False)
+    assert Settings(database_url="sqlite:///./bakery.db").database_url == "sqlite:////tmp/bakery.db"

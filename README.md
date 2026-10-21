@@ -35,10 +35,38 @@ To see the site from a phone on the same Wi-Fi, use `http://<your-computer-IP>:8
 
 > **Windows tip:** If `pip` breaks with `ImportError ... BuildDependencyInstallError`, the virtual environment is corrupted. Run `deactivate`, then `Remove-Item -Recurse -Force .venv`, and repeat the steps. Python 3.12 is the tested version.
 
+## Deploy to Vercel (from GitHub)
+
+The repo is ready for Vercel:
+- `vercel.json` serves `web/` as the website.
+- `vercel.json` also sends `/api/*` and `/docs` to a Python function (`api/index.py`) that runs the FastAPI backend.
+
+**You need a database.** Vercel functions can't keep files, so orders must be stored in PostgreSQL. Vercel's free **Neon** database works.
+
+1. **Push to GitHub.** This repo is already there: `brionesbry26-prog/4R-Bakery`.
+2. On **vercel.com**, go to **Add New → Project** and import `4R-Bakery`. Leave the settings as they are:
+   - Framework Preset: **Other**
+   - Root Directory: the repo root
+   - Build Command: empty
+   `vercel.json` sets everything else. Click **Deploy**.
+3. In the Vercel project, open **Storage → Create Database → Neon (Postgres)** and connect it to this project. That adds `DATABASE_URL` automatically.
+4. Under **Settings → Environment Variables**, add `ENVIRONMENT=production`. Add the bakery's details too once you have them: `BAKERY_PHONE`, `BAKERY_HOURS` and so on (see `backend/.env.example`).
+5. **Redeploy** (Deployments → ⋯ → Redeploy) so the function picks up the database. The first request creates the tables and loads the sample menu.
+6. Open `https://<your-project>.vercel.app`. The API docs are at `/docs`.
+
+Notes:
+- **Without `DATABASE_URL`** the site still starts, but it uses a temporary SQLite file that Vercel wipes regularly, so orders are lost. Always connect the database.
+- **Which branch deploys.** Vercel deploys the repo's default branch to production. If your code is on another branch, either merge it into `main` or set **Settings → Git → Production Branch**.
+- **Photos.** They load from Higgsfield's image host. To keep copies in your own deployment, run `.\web\images\download-photos.ps1`, then commit the `.webp` files.
+- **Rate limiting** is per function instance on Vercel. If you need stricter limits, use Vercel's Firewall rules.
+- **Updates.** Every `git push` to the production branch redeploys automatically. Pushes to other branches get preview URLs.
+
 ## Project structure
 
 ```text
 4R-Bakery/
+├── api/index.py             Vercel serverless entry point (wraps backend/main.py)
+├── vercel.json              Vercel config: static web/ + /api → Python function
 ├── web/                     Customer website (HTML + CSS + JS modules, no build step)
 │   ├── index.html
 │   ├── css/styles.css       Design tokens + all components (responsive)
@@ -52,7 +80,7 @@ To see the site from a phone on the same Wi-Fi, use `http://<your-computer-IP>:8
 │   └── e2e/website.e2e.js   Playwright end-to-end test
 ├── backend/                 FastAPI + SQLAlchemy + SQLite (PostgreSQL-ready); serves web/ at "/"
 │   ├── main.py, config.py, database.py, models.py, schemas.py, crud.py, seed.py, manage.py
-│   ├── tests/test_api.py    49 pytest tests
+│   ├── tests/test_api.py    53 pytest tests (SQLite by default; set TEST_DATABASE_URL to run on Postgres)
 │   └── README.md            API reference, configuration, security notes
 └── mobile/                  Optional Expo (React Native) app using the same API
 ```
@@ -120,7 +148,8 @@ The earlier Expo/React Native app still works against the same API (`cd mobile &
 
 | Suite | Command | Result |
 |---|---|---|
-| Backend unit/integration | `cd backend && pytest -q` | **49 passed** (includes the website being served at `/` while `/api` routes still take priority) |
+| Backend unit/integration | `cd backend && pytest -q` | **53 passed on SQLite and 53 passed on PostgreSQL 16** |
+| Vercel-style run | `api/index.py` imported with `VERCEL=1` and a `postgres://` URL, `web/` served separately | **Website end-to-end test passed (desktop + phone)**. Orders were saved in PostgreSQL |
 | Website end-to-end, desktop 1440px | `NODE_PATH=$(npm root -g) node web/e2e/website.e2e.js` | **17/17 checks passed** |
 | Website end-to-end, phone 390px | `VIEWPORT=mobile … node web/e2e/website.e2e.js` | **17/17 checks passed** |
 | Optional mobile app (Jest, bundles) | `cd mobile && npm test` | 19 passed (from the earlier mobile build) |

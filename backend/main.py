@@ -19,6 +19,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
 from sqlalchemy import text
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 import crud
@@ -50,14 +51,30 @@ logging.basicConfig(level=settings.log_level, format="%(asctime)s %(levelname)s 
 logger = logging.getLogger("bakery.api")
 
 
-@asynccontextmanager
-async def lifespan(_app: FastAPI):
-    init_db()
+def prepare_database() -> None:
+    """Create tables and seed sample products. Safe to call repeatedly and
+    concurrently (serverless cold starts may run it in parallel)."""
+    try:
+        init_db()
+    except Exception:  # a parallel cold start may be creating the same tables
+        time.sleep(1)
+        init_db()
     if settings.seed_sample_products:
         with SessionLocal() as db:
-            created = seed_products(db)
+            try:
+                created = seed_products(db)
+            except IntegrityError:
+                db.rollback()  # another instance seeded at the same moment
+                created = 0
             if created:
                 logger.info("Seeded %d sample product(s)", created)
+    if settings.database_url.startswith("sqlite:////tmp/"):
+        logger.warning("Using a temporary SQLite database: orders will NOT persist. Set DATABASE_URL to Postgres.")
+
+
+@asynccontextmanager
+async def lifespan(_app: FastAPI):
+    prepare_database()
     yield
 
 
@@ -80,8 +97,13 @@ app.add_middleware(
     allow_headers=["Content-Type", "Idempotency-Key", "X-Contact-Phone"],
 )
 
-STATIC_DIR.mkdir(exist_ok=True)
-app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
+# Product photos uploaded by the bakery. Read-only filesystems (serverless) can't create it.
+try:
+    STATIC_DIR.mkdir(exist_ok=True)
+except OSError:
+    pass
+if STATIC_DIR.is_dir():
+    app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
 
 
 # --------------------------------------------------------------------------
