@@ -13,7 +13,7 @@ The FastAPI backend also serves the website, so there's **no Node.js or build st
 cd backend
 py -V:3.12 -m venv .venv            # or: py -3.12 -m venv .venv
 .\.venv\Scripts\Activate.ps1
-python -m pip install -r requirements-dev.txt
+python -m pip install -r requirements-dev.txt   # installs ../requirements.txt + test tools
 if (!(Test-Path .env)) { Copy-Item .env.example .env }
 uvicorn main:app --reload --host 0.0.0.0 --port 8000
 ```
@@ -37,30 +37,38 @@ To see the site from a phone on the same Wi-Fi, use `http://<your-computer-IP>:8
 
 ## Deploy to Vercel (from GitHub)
 
-The repo is ready for Vercel:
-- `vercel.json` serves `web/` as the website.
-- `vercel.json` also sends `/api/*` and `/docs` to a Python function (`api/index.py`) that runs the FastAPI backend.
+The repo deploys to Vercel as **one project**:
+- `web/` is served as the website.
+- `/api/*` and `/docs` run the FastAPI backend as a Python function (`api/index.py`, configured in `vercel.json`).
+
+Vercel's detector sees a single **FastAPI** app at the repo root. There is no "Multiple applications / Services" choice, because the Python dependencies live in the root `requirements.txt`.
 
 **You need a database.** Vercel functions can't keep files, so orders must be stored in PostgreSQL. Vercel's free **Neon** database works.
 
-1. **Push to GitHub.** This repo is already there: `brionesbry26-prog/4R-Bakery`.
-2. On **vercel.com**, go to **Add New → Project** and import `4R-Bakery`. Leave the settings as they are:
-   - Framework Preset: **Other**
-   - Root Directory: the repo root
-   - Build Command: empty
-   `vercel.json` sets everything else. Click **Deploy**.
-3. In the Vercel project, open **Storage → Create Database → Neon (Postgres)** and connect it to this project. That adds `DATABASE_URL` automatically.
-4. Under **Settings → Environment Variables**, add `ENVIRONMENT=production`. Add the bakery's details too once you have them: `BAKERY_PHONE`, `BAKERY_HOURS` and so on (see `backend/.env.example`).
-5. **Redeploy** (Deployments → ⋯ → Redeploy) so the function picks up the database. The first request creates the tables and loads the sample menu.
-6. Open `https://<your-project>.vercel.app`. The API docs are at `/docs`.
+1. On **vercel.com**, go to **Add New → Project** and import `brionesbry26-prog/4R-Bakery`.
+2. Keep the defaults:
+   - Framework: **FastAPI** (detected)
+   - Root Directory: `./`
+   - No build or output overrides
+
+   Click **Deploy**.
+3. In the project, open **Storage → Create Database → Neon (Postgres)** and connect it to this project. That adds `DATABASE_URL` automatically.
+4. Under **Settings → Environment Variables**, add `ENVIRONMENT=production`. Add the bakery's details later as you get them: `BAKERY_PHONE`, `BAKERY_HOURS` and so on (see `backend/.env.example`).
+5. **Redeploy** (Deployments → ⋯ → Redeploy). The first request creates the tables and loads the sample menu.
+6. Open `https://<your-project>.vercel.app`. Check `/api/health` and `/docs`.
 
 Notes:
-- **If you see `404 NOT_FOUND`:** open **Settings → Build & Deployment**. Make sure Framework Preset is **Other** and that Root Directory, Build Command and Output Directory have **no overrides**, because `vercel.json` sets them. Then redeploy. The config also sends any page Vercel can't find to the Python function, which serves the website itself.
-- **Without `DATABASE_URL`** the site still starts, but it uses a temporary SQLite file that Vercel wipes regularly, so orders are lost. Always connect the database.
-- **Which branch deploys.** Vercel deploys the repo's default branch to production. If your code is on another branch, either merge it into `main` or set **Settings → Git → Production Branch**.
+- **Old project with Root Directory = `backend`.** If you created one earlier, it shows `404 NOT_FOUND`. Delete it, or set its Root Directory back to `./` and redeploy.
+- **Without `DATABASE_URL`** the site runs, but on a temporary SQLite file that Vercel wipes regularly, so orders are lost.
+- **Which branch deploys.** Vercel deploys the repo's default branch. Every `git push` to it redeploys automatically.
 - **Photos.** They load from Higgsfield's image host. To keep copies in your own deployment, run `.\web\images\download-photos.ps1`, then commit the `.webp` files.
-- **Rate limiting** is per function instance on Vercel. If you need stricter limits, use Vercel's Firewall rules.
-- **Updates.** Every `git push` to the production branch redeploys automatically. Pushes to other branches get preview URLs.
+- **Rate limiting** is per function instance on Vercel. Use Vercel Firewall rules if you need stricter limits.
+
+**How this was checked:**
+- Vercel's own detector reports a single FastAPI app.
+- `vercel build` (CLI 65) built a static `web/` output with `/api` routed to the Python 3.12 function.
+- The built function, run from its bundle with PostgreSQL, passed the full website end-to-end test.
+- An actual vercel.com deployment has not been tested.
 
 ## Project structure
 
