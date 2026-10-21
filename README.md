@@ -55,6 +55,7 @@ The repo is ready for Vercel:
 6. Open `https://<your-project>.vercel.app`. The API docs are at `/docs`.
 
 Notes:
+- **If you see `404 NOT_FOUND`:** open **Settings → Build & Deployment**. Make sure Framework Preset is **Other** and that Root Directory, Build Command and Output Directory have **no overrides**, because `vercel.json` sets them. Then redeploy. The config also sends any page Vercel can't find to the Python function, which serves the website itself.
 - **Without `DATABASE_URL`** the site still starts, but it uses a temporary SQLite file that Vercel wipes regularly, so orders are lost. Always connect the database.
 - **Which branch deploys.** Vercel deploys the repo's default branch to production. If your code is on another branch, either merge it into `main` or set **Settings → Git → Production Branch**.
 - **Photos.** They load from Higgsfield's image host. To keep copies in your own deployment, run `.\web\images\download-photos.ps1`, then commit the `.webp` files.

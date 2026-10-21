@@ -1,17 +1,19 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "framework": null,
-  "buildCommand": "",
+  "installCommand": "echo 'No Node install needed'",
+  "buildCommand": "echo 'Static site: publishing web/'",
   "outputDirectory": "web",
   "functions": {
     "api/index.py": {
-      "includeFiles": "backend/**",
+      "includeFiles": "{backend,web}/**",
       "maxDuration": 15
     }
   },
   "rewrites": [
     { "source": "/api/(.*)", "destination": "/api/index" },
     { "source": "/docs", "destination": "/api/index" },
-    { "source": "/openapi.json", "destination": "/api/index" }
+    { "source": "/openapi.json", "destination": "/api/index" },
+    { "source": "/(.*)", "destination": "/api/index" }
   ]
 }
