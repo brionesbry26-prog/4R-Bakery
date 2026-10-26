@@ -116,6 +116,10 @@ Server field errors are mapped back onto the form fields. If the connection drop
 
 **Confirmation and tracking.** Shows the real server reference, `Pending` status, the server-computed total and a copy button. The Track page refreshes orders placed in this browser and can look up any order by reference + mobile number.
 
+**Order status.** Each pre-order has a dedicated status screen: a five-step progress timeline (request sent → confirmed → preparing → ready for pickup → picked up), the bakery's status message, pickup details, item totals, a refresh button and copyable reference. Rejected and cancelled orders show their own guidance.
+
+**Sign in (UI prototype).** An email + password screen with a create-account toggle, inline validation and a remembered session in the browser. The header shows the signed-in name and the account screen lists recent pre-orders and signs out. Nothing is sent to the server yet — this is the screen only.
+
 **Visit us.** Address with directions and copy, opening hours, phone, email and social links, plus an embedded map. Details show "not yet published" until the bakery sets them in `backend/.env`.
 
 **Responsive.** Desktop-first layout (1200px container). Below 900px the menu sidebar becomes chips and navigation moves into a menu button. Single-column layout below 600px.
@@ -193,6 +197,7 @@ To run it: start the backend, install Playwright once (`npm i -g playwright && n
 | `ImportError … BuildDependencyInstallError` | The venv is corrupted. Run `deactivate`, then `Remove-Item -Recurse -Force .venv`, and recreate it with `py -V:3.12 -m venv .venv` |
 | "Running scripts is disabled" | Run `Set-ExecutionPolicy -Scope CurrentUser RemoteSigned` once |
 | Site says "We can't reach the bakery" | Make sure `uvicorn` is running and you opened the site from the same server (http://localhost:8000/) |
+| "Something went wrong on our side" when submitting a pre-order | On Windows, Python has no built-in timezone database, so `Asia/Manila` is missing. Run `pip install -r requirements-dev.txt` from `backend/` (the shared `requirements.txt` installs `tzdata` on Windows) and restart `uvicorn` |
 | Phone can't open the site | Use your PC's LAN IP, start uvicorn with `--host 0.0.0.0`, use the same Wi-Fi, and allow port 8000 in the firewall |
 | "Pickup must be in the future" near midnight | Pickup times use bakery time (Asia/Manila) |
 | `429 Too many requests` | Raise `ORDER_RATE_LIMIT_PER_MINUTE` in development, or set it to `0` |
@@ -210,7 +215,7 @@ To run it: start the backend, install Playwright once (`npm i -g playwright && n
 The following were deliberately **not** built:
 - payments,
 - delivery,
-- customer accounts,
+- customer accounts (the sign-in screen is UI only, with no server authentication),
 - an authenticated staff/admin interface (status changes currently use `manage.py`),
 - push notifications,
 - real-time stock.

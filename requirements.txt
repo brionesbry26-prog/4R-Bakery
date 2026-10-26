@@ -8,3 +8,5 @@ pydantic-settings==2.16.0
 email-validator==2.3.0
 python-dotenv==1.2.4
 psycopg[binary]==3.3.6
+# Windows has no system IANA database; zoneinfo needs this for Asia/Manila.
+tzdata==2026.5; sys_platform == "win32"

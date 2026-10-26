@@ -7,7 +7,7 @@ const listeners = new Set();
 const emit = () => listeners.forEach((fn) => fn());
 export const subscribe = (fn) => (listeners.add(fn), () => listeners.delete(fn));
 
-const KEYS = { cart: '4r.web.cart.v1', orders: '4r.web.orders.v1' };
+const KEYS = { cart: '4r.web.cart.v1', orders: '4r.web.orders.v1', session: '4r.web.session.v1' };
 function load(key, fallback) {
   try {
     const raw = localStorage.getItem(key);
@@ -33,6 +33,8 @@ export const state = {
   infoStatus: 'idle',
   cart: (load(KEYS.cart, []) || []).filter((i) => i && Number.isInteger(i.productId) && i.quantity > 0),
   orders: load(KEYS.orders, []) || [],
+  // Prototype session only: the email is kept in this browser, never sent to the server.
+  session: load(KEYS.session, null) || null,
 };
 
 // ---------- Catalog ----------
@@ -157,5 +159,32 @@ export function updateOrderSnapshot(reference, snapshot) {
 export function forgetOrder(reference) {
   state.orders = state.orders.filter((o) => o.reference !== reference);
   save(KEYS.orders, state.orders);
+  emit();
+}
+
+// ---------- Account (UI prototype) ----------
+const nameFromEmail = (email) =>
+  String(email)
+    .split('@')[0]
+    .split(/[._-]+/)
+    .filter(Boolean)
+    .map((w) => w[0].toUpperCase() + w.slice(1))
+    .join(' ');
+
+export function signIn(email, { name } = {}) {
+  const clean = String(email || '').trim().toLowerCase();
+  state.session = {
+    email: clean,
+    name: String(name || '').trim() || nameFromEmail(clean) || 'Friend',
+    signedInAt: new Date().toISOString(),
+  };
+  save(KEYS.session, state.session);
+  emit();
+  return state.session;
+}
+
+export function signOut() {
+  state.session = null;
+  save(KEYS.session, null);
   emit();
 }

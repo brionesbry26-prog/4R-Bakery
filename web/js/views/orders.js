@@ -1,6 +1,7 @@
 import { api } from '../api.js';
 import { esc, formatDate, formatDateTime, formatPeso, formatTime } from '../format.js';
 import { icon } from '../icons.js';
+import { navigate } from '../router.js';
 import { forgetOrder, rememberOrder, state, updateOrderSnapshot } from '../store.js';
 import { toast } from '../ui.js';
 import { normalizePhone, validatePhone } from '../validation.js';
@@ -53,8 +54,8 @@ export const confirmation = {
       ${orderCard(order)}
       <div style="display:flex;gap:12px;flex-wrap:wrap;justify-content:center;margin-top:28px">
         <button class="btn btn--soft" data-action="copy-ref" data-ref="${esc(order.reference)}">${icon('copy')} Copy reference</button>
-        <a class="btn" href="#/track">${icon('receipt')} View my orders</a>
-        <a class="btn btn--ghost" href="#/menu">Continue browsing</a>
+        <a class="btn" href="#/status/${encodeURIComponent(order.reference)}">${icon('clipboard')} Track status</a>
+        <a class="btn btn--ghost" href="#/track">View my orders</a>
       </div>
     </div></section>`;
   },
@@ -86,7 +87,10 @@ function savedList() {
     .map((entry) => {
       const r = remote[entry.reference];
       const order = r?.order || entry.snapshot;
-      const actions = `<div style="display:flex;justify-content:flex-end;margin-top:14px"><button class="remove-btn" data-action="forget" data-ref="${esc(entry.reference)}">Hide from this device</button></div>`;
+      const actions = `<div class="order-actions">
+        <a class="btn btn--sm btn--soft" href="#/status/${encodeURIComponent(entry.reference)}">${icon('arrowRight', { size: 16 })} View status</a>
+        <button class="remove-btn" data-action="forget" data-ref="${esc(entry.reference)}">Hide from this device</button>
+      </div>`;
       if (!order) return `<article class="card order-card"><div class="ref">${esc(entry.reference)}</div><p class="muted">${r?.error ? esc(r.error.message) : 'Loading status…'}</p>${actions}</article>`;
       return orderCard(order, { stale: !!r?.error, actions });
     })
@@ -167,7 +171,7 @@ export const track = {
         remote[order.reference] = { order, error: null };
         rememberOrder(order.reference, phone, order);
         form.reset();
-        msg.innerHTML = `<div class="alert alert--success">${icon('checkCircle')}<span>Found order ${esc(order.reference)}.</span></div>`;
+        navigate(`#/status/${encodeURIComponent(order.reference)}`);
       } catch (err) {
         msg.innerHTML = `<div class="alert alert--error">${icon('alert')}<span>${esc(err.status === 404 ? 'No order matches that reference and mobile number.' : err.message)}</span></div>`;
       } finally {

@@ -4,11 +4,13 @@ import { fallbackArt, productVisual } from './illustrations.js';
 import { parseHash } from './router.js';
 import { addToCart, cartTotals, loadInfo, loadProducts, productById, removeFromCart, setQuantity, state, subscribe } from './store.js';
 import { emptyState, stepper, toast } from './ui.js';
+import { account } from './views/account.js';
 import { checkout } from './views/checkout.js';
 import { home } from './views/home.js';
 import { menu } from './views/menu.js';
 import { confirmation, track } from './views/orders.js';
 import { product } from './views/product.js';
+import { orderStatus } from './views/status.js';
 import { visit } from './views/visit.js';
 
 const NAV = [
@@ -25,7 +27,9 @@ function resolve(route) {
   if (first === 'product' && second) return { view: product, params: { id: second } };
   if (first === 'checkout') return { view: checkout, params: {} };
   if (first === 'order' && second) return { view: confirmation, params: { ref: decodeURIComponent(second) } };
+  if (first === 'status' && second) return { view: orderStatus, params: { ref: decodeURIComponent(second) } };
   if (first === 'track') return { view: track, params: {} };
+  if (first === 'login') return { view: account, params: {} };
   if (first === 'visit') return { view: visit, params: {} };
   return { view: null, params: {} };
 }
@@ -41,6 +45,10 @@ function shell() {
           <span class="brand-name">4R Bakery<small>Bachawan · San Agustin, Romblon</small></span></a>
         <nav class="nav" id="nav" aria-label="Main">${NAV.map(([h, l]) => `<a href="${h}">${l}</a>`).join('')}</nav>
         <div class="header-actions">
+          <a class="account-btn" id="account-link" href="#/login">
+            <span class="account-avatar" id="account-avatar">${icon('user', { size: 18 })}</span>
+            <span class="label" id="account-label">Sign in</span>
+          </a>
           <button class="cart-btn" data-action="open-cart" aria-haspopup="dialog">${icon('bag')}<span class="label">Bag</span><span class="cart-count" id="cart-count">0</span></button>
           <button class="menu-toggle" data-action="toggle-nav" aria-expanded="false" aria-controls="nav" aria-label="Open menu">${icon('menu')}</button>
         </div>
@@ -55,7 +63,7 @@ function shell() {
           <div><a class="brand" href="#/"><span class="brand-mark">4R</span><span class="brand-name">4R Bakery<small>Freshly baked, made with love</small></span></a>
             <p class="footer-note">A neighborhood bakery in Brgy. Bachawan, San Agustin, Romblon. Pre-order online and pick up fresh.</p></div>
           <div><h4>Explore</h4><ul><li><a href="#/menu">Menu</a></li><li><a href="#/menu?category=Cakes">Cakes</a></li><li><a href="#/checkout">Pre-order</a></li></ul></div>
-          <div><h4>Help</h4><ul><li><a href="#/track">Track an order</a></li><li><a href="#/visit">Visit & contact</a></li></ul></div>
+          <div><h4>Help</h4><ul><li><a href="#/track">Track an order</a></li><li><a href="#/login">Sign in / account</a></li><li><a href="#/visit">Visit & contact</a></li></ul></div>
           <div><h4>Visit</h4><ul id="footer-visit"></ul></div>
         </div>
         <div class="footer-bottom"><span>© ${new Date().getFullYear()} 4R Bakery</span><span>Pre-orders are requests pending bakery confirmation. No online payment.</span></div>
@@ -106,6 +114,24 @@ function renderChrome() {
       <p class="muted small">Pickup only. Final total is confirmed by the bakery’s server.</p>
       ${blocked ? `<div class="alert alert--error">${icon('alert')}<span>Remove unavailable items to continue.</span></div>` : ''}
       <a class="btn btn--lg btn--block" href="#/checkout" data-action="close-cart" ${blocked ? 'aria-disabled="true" tabindex="-1"' : ''}>Proceed to pre-order ${icon('arrowRight')}</a>`;
+  }
+
+  // Account chip: the prototype session is stored in this browser only.
+  const accountLink = document.getElementById('account-link');
+  const accountLabel = document.getElementById('account-label');
+  const accountAvatar = document.getElementById('account-avatar');
+  const session = state.session;
+  if (session) {
+    const displayName = String(session.name || session.email || 'You').trim();
+    accountAvatar.textContent = displayName.charAt(0).toUpperCase();
+    accountLabel.textContent = displayName.split(' ')[0];
+    accountLink.setAttribute('aria-label', `Account for ${session.email}`);
+    accountLink.classList.add('is-signed-in');
+  } else {
+    accountAvatar.innerHTML = icon('user', { size: 18 });
+    accountLabel.textContent = 'Sign in';
+    accountLink.setAttribute('aria-label', 'Sign in to your account');
+    accountLink.classList.remove('is-signed-in');
   }
 
   const fv = document.getElementById('footer-visit');
